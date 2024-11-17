@@ -6,12 +6,14 @@ namespace SleepNow
     public partial class MainForm : Form
     {
         private bool closeToTray = true; // Prevents form from actually closing
+        private Timer alertTimer;
 
         public MainForm()
         {
             InitializeComponent();
             InitializeFormControls();
             InitializeNotifyIcon();
+            InitializeAlertTimer();
         }
 
         private void InitializeFormControls()
@@ -161,6 +163,37 @@ namespace SleepNow
                 this.Hide();
                 notifyIconSleepNow.ShowBalloonTip(3000, "Sleep Now", "The application is still running in the system tray.", ToolTipIcon.Info);
             }
+        }
+
+        private void InitializeAlertTimer()
+        {
+            alertTimer = new Timer
+            {
+                Interval = 60000 // Check every minute
+            };
+            alertTimer.Tick += AlertTimer_Tick;
+            alertTimer.Start();
+        }
+
+        private void AlertTimer_Tick(object sender, EventArgs e)
+        {
+            var currentTime = DateTime.Now;
+            var sleepTime = SettingsManager.CurrentSettings.SleepTime;
+            var preAlertMinutes = SettingsManager.CurrentSettings.PreAlertMinutes;
+
+            // Check if current time matches pre-alert time
+            if (sleepTime.Subtract(TimeSpan.FromMinutes(preAlertMinutes)) <= currentTime &&
+                currentTime < sleepTime)
+            {
+                ShowPreAlertNotification();
+            }
+        }
+
+        private void ShowPreAlertNotification()
+        {
+            notifyIconSleepNow.ShowBalloonTip(3000, "Sleep Now",
+                $"It's time to prepare for sleep! Your computer will shut down in {SettingsManager.CurrentSettings.PreAlertMinutes} minutes.",
+                ToolTipIcon.Warning);
         }
     }
 }
